@@ -1,0 +1,1 @@
+export const baseUrl = "https://akademija.teltonika.lt/countries_api/api";
