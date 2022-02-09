@@ -89,7 +89,7 @@ export default {
 
   methods: {
     checkFormValidity() {
-      this.nameState = this.name != "" && /^[a-zA-Z]+$/.test(this.name);
+      this.nameState = this.name != "" && /^[A-Za-z\s]*$/.test(this.name);
       this.areaState = this.$refs.area.checkValidity();
       this.populationState = this.$refs.population.checkValidity();
       this.codeState = this.$refs.code.checkValidity();
