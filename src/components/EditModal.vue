@@ -3,10 +3,11 @@
     <b-modal
       id="edit-modal"
       ref="modal"
-      :title="(type === 'country') ? 'REDAGUOTI ŠALĮ' : 'REDAGUOTI MIESTĄ'"
+      :title="type === 'country' ? 'REDAGUOTI ŠALĮ' : 'REDAGUOTI MIESTĄ'"
       @show="resetModal"
       @hidden="resetModal"
       hide-footer
+      centered
     >
       <form ref="form" @submit.stop.prevent="handleSubmit">
         <b-form-input
@@ -14,40 +15,54 @@
           placeholder="Pavadinimas"
           v-model="name"
           :state="nameState"
+          ref="name"
           required
         ></b-form-input>
         <br />
         <b-form-input
           id="area-input"
+          type="number"
+          step="0.01"
           placeholder="Užimamamas plotas"
           v-model="area"
           :state="areaState"
+          ref="area"
           required
+          trim
         ></b-form-input>
         <br />
         <b-form-input
           id="population-input"
+          type="number"
+          step="0.01"
           placeholder="Gyventojų skaičius"
           v-model="population"
           :state="populationState"
+          ref="population"
           required
+          trim
         ></b-form-input>
         <br />
         <b-form-input
           id="code-input"
-          :placeholder="(type === 'country') ? 'Šalies tel. kodas' : 'Miesto pašto kodas'"
+          :placeholder="
+            type === 'country' ? 'Šalies tel. kodas' : 'Miesto pašto kodas'
+          "
           v-model="code"
           :state="codeState"
+          ref="code"
           required
         ></b-form-input>
         <br />
-        <b-button
-          class="mt-2"
-          variant="outline-secondary"
-          block
-          @click="handleOk"
-          >ATNAUJINTI</b-button
-        >
+        <div class="d-flex flex-row-reverse">
+          <b-button
+            class="mt-2"
+            variant="outline-secondary"
+            block
+            @click="handleOk"
+            >SAUGOTI</b-button
+          >
+        </div>
       </form>
     </b-modal>
   </div>
@@ -57,7 +72,7 @@
 import { baseUrl } from "../constants";
 
 export default {
-  props: ["type", "country"],
+  props: ["type", "country", "data"],
 
   data() {
     return {
@@ -71,25 +86,26 @@ export default {
       codeState: null,
     };
   },
+
+  watch: {
+    data() {
+      this.name = this.data.attributes.name;
+      this.area = this.data.attributes.area;
+      this.population = this.data.attributes.population;
+      this.code =
+        this.type === "country"
+          ? this.data.attributes.phone_code
+          : this.data.attributes.postal_code;
+    },
+  },
+
   methods: {
     checkFormValidity() {
-      const valid = this.$refs.form.checkValidity();
-      this.nameState = valid;
-      this.areaState = valid;
-      this.populationState = valid;
-      this.codeState = valid;
-      return valid;
-    },
-
-    resetModal() {
-      this.name = "";
-      this.area = "";
-      this.population = "";
-      this.code = "";
-      this.nameState = null;
-      this.areaState = null;
-      this.populationState = null;
-      this.codeState = null;
+      this.nameState = this.name != "" && /^[a-zA-Z]+$/.test(this.name);
+      this.areaState = this.$refs.area.checkValidity();
+      this.populationState = this.$refs.population.checkValidity();
+      this.codeState = this.$refs.code.checkValidity();
+      return this.nameState && this.areaState && this.populationState && this.codeState
     },
 
     handleOk(bvModalEvt) {
@@ -97,41 +113,56 @@ export default {
       this.handleSubmit();
     },
 
+    resetModal() {
+      this.nameState = null;
+      this.areaState = null;
+      this.populationState = null;
+      this.codeState = null;
+    },
+
     handleSubmit() {
       if (!this.checkFormValidity()) return;
+      const data = {
+        attributes: {
+          name: this.name,
+          area: this.area,
+          population: this.population,
+        },
+      };
       if (this.type === "country") {
-        const data = {
-          attributes: {
-            name: this.name,
-            area: this.area,
-            population: this.population,
-            phone_code: this.code,
-          },
-        };
+        data.attributes.phone_code = this.code;
         axios
-          .post(`${baseUrl}/countries`, { data })
-          .then((_) => alert("Šalis sėkmingai pridėta!"))
+          .put(`${baseUrl}/countries/${this.data.id}`, { data })
+          .then((response) => {
+            this.$emit(`${this.type}Updated`, response);
+            alert("Šalis sėkmingai atnaujinta!");
+          })
           .catch((error) => console.log(error));
       } else {
-        const data = {
-          attributes: {
-            name: this.name,
-            area: this.area,
-            population: this.population,
-            postal_code: this.code,
-          },
-        };
+        data.attributes.postal_code = this.code;
         axios
-          .post(`${baseUrl}/countries/${this.country.id}/cities`, { data })
-          .then((_) => alert("Miestas sėkmingai pridėtas!"))
+          .put(
+            `${baseUrl}/countries/${this.country.id}/cities/${this.data.id}`,
+            { data }
+          )
+          .then((response) => {
+            this.$emit(`${this.type}Updated`, response);
+            alert("Miestas sėkmingai atnaujintas!");
+          })
           .catch((error) => console.log(error));
       }
-      this.$emit(`${this.type}Added`, { data });
-
       this.$nextTick(() => {
-        this.$bvModal.hide("modal-prevent-closing");
+        this.$bvModal.hide("edit-modal");
       });
     },
   },
 };
 </script>
+
+<style>
+.close {
+  background: none;
+  border: none;
+  font-size: 25px;
+}
+</style>

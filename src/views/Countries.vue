@@ -1,39 +1,40 @@
 <template>
   <div>
-    <div class="center mt-5" v-if="loading">
-      <div class="spinner-border" role="status">
-        <span class="sr-only"></span>
-      </div>
-    </div>
+    <Spinner v-if="loading" />
     <div v-else>
-      <div class="parent">
-        <div class="child inline-block-child text-uppercase">
-          <label class="title">Šalys</label>
-        </div>
-        <div class="child inline-block-child mt-2">
-          <b-button
-            variant="outline-primary"
-            class="btn-circle"
-            v-b-modal.form-modal
-            ><i class="fas fa-plus fa-2x"></i
-          ></b-button>
-        </div>
-      </div>
+      <Header>Šalys</Header>
       <FiltersBar
         @searchFilter="getSearch"
         @dateFrom="getDateFrom"
         @dateTo="getDateTo"
-        ></FiltersBar
-      >
-      <FormModal :type="type" @countryAdded="addCountry"></FormModal>
-      <EditModal></EditModal>
-      <Table :type="type" :items="countries.data" />
-      <Pagination :meta="countries.meta" :page="page" @nextPage="getPage" />
+      />
+      <FormModal :type="type" @countryAdded="onChange" />
+      <AlertInfo v-if="countries.data.length === 0">
+        <template slot="info"
+          >Šiuo metu nėra pridėtų šalių arba šalių pagal pritaikytus
+          filtrus.</template
+        >
+        <template slot="item">šalį</template>
+      </AlertInfo>
+      <div v-else>
+        <EditModal :type="type" :data="data" @countryUpdated="onChange" />
+        <Table
+          :type="type"
+          :items="countries.data"
+          @deleted="managePagesAfterDelete"
+          @sort="sortItems(countries)"
+          @dataSent="saveData"
+        />
+        <Pagination :meta="countries.meta" :page="page" @nextPage="getPage" />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import Spinner from "../components/Spinner";
+import Header from "../components/Header";
+import AlertInfo from "../components/AlertInfo";
 import Table from "../components/Table";
 import FiltersBar from "../components/FiltersBar";
 import Pagination from "../components/Pagination";
@@ -46,11 +47,14 @@ export default {
   mixins: [filtersMixin],
 
   components: {
+    Spinner,
+    Header,
+    AlertInfo,
     Table,
     FiltersBar,
     FormModal,
     EditModal,
-    Pagination
+    Pagination,
   },
 
   data() {
@@ -61,16 +65,18 @@ export default {
   },
 
   methods: {
-    addCountry(country) {
-      this.countries.unshift(country);
-    },
-
     onChange() {
       axios
         .get(
           `${baseUrl}/countries?search=${this.search}&start_date=${this.dateFrom}&end_date=${this.dateTo}&page=${this.page}`
         )
-        .then((response) => (this.countries = response.data));
+        .then((response) => (this.countries = response.data))
+        .catch((error) => console.log(error));
+    },
+
+    managePagesAfterDelete() {
+      if (this.countries.data.length < 2) this.page -= 1;
+      this.onChange();
     },
   },
 
@@ -83,9 +89,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.center {
-  text-align: center;
-}
-</style>

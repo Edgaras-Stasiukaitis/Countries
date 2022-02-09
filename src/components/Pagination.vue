@@ -3,16 +3,16 @@
     <nav aria-label="Page navigation">
       <ul class="pagination">
         <li :class="(page <= 1) ? 'page-item disabled' : 'page-item'">
-          <a class="page-link" href="#" aria-label="Previous" @click="nextPage(page - 1)">
+          <a class="page-link" href="javascript:void(0)" aria-label="Previous" @click="nextPage(page - 1)">
             <span aria-hidden="true">&laquo;</span>
             <span class="sr-only">Previous</span>
           </a>
         </li>
-        <li :class="(page == i) ? 'page-item active' : 'page-item'" v-for="i in getPageCount()" :key="i">
-          <a class="page-link" href="#" @click="nextPage(i)">{{ i }}</a>
+        <li :class="(page == i) ? 'page-item active' : 'page-item'" v-for="i in meta.last_page" :key="i">
+          <a class="page-link" href="javascript:void(0)" @click="nextPage(i)">{{ i }}</a>
         </li>
-        <li :class="(page >= getPageCount()) ? 'page-item disabled' : 'page-item'">
-          <a class="page-link" href="#" aria-label="Next" @click="nextPage(page + 1)">
+        <li :class="(page >= meta.last_page) ? 'page-item disabled' : 'page-item'">
+          <a class="page-link" href="javascript:void(0)" aria-label="Next" @click="nextPage(page + 1)">
             <span aria-hidden="true">&raquo;</span>
             <span class="sr-only">Next</span>
           </a>
@@ -27,13 +27,7 @@ export default {
   props: ["meta", "page"],
 
   methods: {
-    getPageCount() {
-      return Math.floor((this.meta.total - 1) / this.meta.per_page + 1);
-    },
-
     nextPage(page) {
-      page = page < this.getPageCount() ? 1 : page;
-      page = page > this.getPageCount() ? this.getPageCount() : page;
       this.$emit("nextPage", page);
     },
   },
